@@ -1,0 +1,17 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: github-creds
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repo-creds
+spec:
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: gitops-stage
+  target:
+    name: github-creds
+    creationPolicy: Owner
+  dataFrom:
+  - extract:
+      key: argocd-github-app

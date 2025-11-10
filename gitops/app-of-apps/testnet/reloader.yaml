@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd
+  name: reloader
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
@@ -11,12 +11,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/unattended-backpack/canon
-    path: gitops/argocd/
-    targetRevision: master
+    repoURL: https://stakater.github.io/stakater-charts
+    targetRevision: 2.2.5
+    chart: reloader
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: reloader
   syncPolicy:
     syncOptions:
       - CreateNamespace=true

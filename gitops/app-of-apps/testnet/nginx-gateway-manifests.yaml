@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: argocd
+  name: nginx-gateway-manifests
   namespace: argocd
   finalizers:
   - resources-finalizer.argocd.argoproj.io
@@ -12,11 +12,12 @@ spec:
   project: default
   source:
     repoURL: https://github.com/unattended-backpack/canon
-    path: gitops/argocd/
+    path: gitops/nginx-gateway-manifests/testnet
     targetRevision: master
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: nginx-gateway
   syncPolicy:
     syncOptions:
       - CreateNamespace=true
+  revisionHistoryLimit: 5

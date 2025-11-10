@@ -1,0 +1,19 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-redirect
+spec:
+  parentRefs:
+  - name: nginx
+    namespace: nginx-gateway
+    sectionName: http-redirect
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    filters:
+      - type: RequestRedirect
+        requestRedirect:
+          scheme: https
+          statusCode: 301

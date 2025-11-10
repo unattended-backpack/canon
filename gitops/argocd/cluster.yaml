@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sigil-testnet
+  namespace: argocd
+  annotations:
+    managed-by: argocd.argoproj.io
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+stringData:
+  config: '{"tlsClientConfig":{"insecure":false}}'
+  name: sigil-testnet
+  server: https://kubernetes.default.svc

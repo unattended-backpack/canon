@@ -1,0 +1,90 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-k8s-monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 3.5.6
+    helm:
+      releaseName: grafana-k8s-monitoring
+      values: |-
+        cluster:
+          name: sigil-testnet
+        destinations:
+          - name: grafana-cloud-logs
+            type: loki
+            url: https://logs-prod-036.grafana.net/loki/api/v1/push
+            auth:
+              type: basic
+              # Remove username and password - they will come from the secret
+              # usernameKey and passwordKey specify which keys in the secret to use
+              usernameKey: username
+              passwordKey: password
+            secret:
+              # Set create: false to use an existing secret instead of creating one
+              create: false
+              # Set embed: false to use Kubernetes secret instead of embedding credentials
+              embed: false
+              # Name of the existing Kubernetes secret
+              name: grafana-cloud-logs-credentials
+              # Namespace where the secret exists (defaults to the release namespace if not specified)
+              namespace: observability
+            metrics:
+              enabled: false
+            logs:
+              enabled: false
+            traces:
+              enabled: true
+        clusterMetrics:
+          enabled: false
+          # Container Metrics
+          cadvisor:
+            enabled: false
+          kubelet:
+            enabled: false
+          # Node CPU and Memory Metrics
+          kubeletResource:
+            enabled: false
+          # Pod Metrics and Custom Resource Metrics
+          kube-state-metrics:
+            enabled: false
+          node-exporter:
+            enabled: false
+          windows-exporter:
+            enabled: false
+        annotationAutodiscovery:
+          enabled: false
+        prometheusOperatorObjects:
+          enabled: false
+        clusterEvents:
+          enabled: false
+        nodeLogs:
+          enabled: false
+        podLogs:
+          enabled: true
+        applicationObservability:
+          enabled: false
+        autoInstrumentation:
+          enabled: false
+        profiling:
+          enabled: false
+        alloy-metrics:
+          enabled: false
+        alloy-singleton:
+          enabled: true
+        alloy-logs:
+          enabled: true
+        alloy-receiver:
+          enabled: false
+        alloy-profiles:
+          enabled: false
+    chart: k8s-monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

@@ -35,9 +35,9 @@ spec:
             metrics:
               enabled: false
             logs:
-              enabled: false
-            traces:
               enabled: true
+            traces:
+              enabled: false
         clusterMetrics:
           enabled: false
           # Container Metrics
@@ -73,8 +73,6 @@ spec:
           enabled: false
         alloy-metrics:
           enabled: false
-        alloy-singleton:
-          enabled: true
         alloy-logs:
           enabled: true
         alloy-receiver:

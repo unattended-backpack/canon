@@ -11,7 +11,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/unattended-backpack/gitops
+    repoURL: https://github.com/unattended-backpack/canon
     path: gitops/argocd/
     targetRevision: master
   destination:

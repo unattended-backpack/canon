@@ -1,7 +1,0 @@
-nginxGateway:
-  config:
-    logging:
-      level: error
-  replicaCount: 1
-service:
-  create: false

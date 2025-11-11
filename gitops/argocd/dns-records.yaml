@@ -1,0 +1,15 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: ingress-aliases
+  namespace: argocd
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: argocd.sigil.box
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
+  labels:
+    app.kubernetes.io/name: ingress-aliases
+    app.kubernetes.io/part-of: argocd
+spec:
+  type: ExternalName
+  externalName: ingress.sigil.box

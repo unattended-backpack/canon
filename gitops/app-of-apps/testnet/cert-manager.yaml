@@ -40,7 +40,7 @@ spec:
               name: letsencrypt
             spec:
               acme:
-                email: CHANGEME
+                email: info@sigil.box
                 privateKeySecretRef:
                   name: letsencrypt-issuer-account-key
                 server: https://acme-v02.api.letsencrypt.org/directory
@@ -48,12 +48,12 @@ spec:
                 - dns01:
                     cloudflare:
                       apiTokenSecretRef:
-                        key: api-token
-                        name: CHANGEME
-                      email: CHANGEME
+                        key: CF_API_TOKEN
+                        name: cf-api-token
+                      email: info@sigil.box
                   selector:
                     dnsZones:
-                    - CHANGEME
+                    - sigil.box
   destination:
     server: https://kubernetes.default.svc
     namespace: cert-manager

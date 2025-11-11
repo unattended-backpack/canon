@@ -1,47 +1,44 @@
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   annotations:
-#     # external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
-#     # external-dns.alpha.kubernetes.io/hostname: ingress.CHANGEME
-#     kubernetes.digitalocean.com/load-balancer-id: CHANGEME
-#     service.beta.kubernetes.io/do-loadbalancer-enable-backend-keepalive: "true"
-#     service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
-#     service.beta.kubernetes.io/do-loadbalancer-name: nginx-gateway
-#     service.beta.kubernetes.io/do-loadbalancer-protocol: tcp
-#     service.beta.kubernetes.io/do-loadbalancer-size-unit: "1"
-#     # service.beta.kubernetes.io/do-loadbalancer-hostname must be set to avoid hairpin routing issues that will cause traffic to be dropped
-#     service.beta.kubernetes.io/do-loadbalancer-hostname: ingress.CHANGEME
-#   finalizers:
-#   - service.kubernetes.io/load-balancer-cleanup
-#   labels:
-#     app.kubernetes.io/instance: nginx-gateway
-#     app.kubernetes.io/name: nginx-gateway
-#     app.kubernetes.io/version: 1.3.0
-#   name: nginx-gateway
-# spec:
-#   allocateLoadBalancerNodePorts: true
-#   clusterIP: 10.245.104.41
-#   clusterIPs:
-#   - 10.245.104.41
-#   externalTrafficPolicy: Local
-#   internalTrafficPolicy: Cluster
-#   ipFamilies:
-#   - IPv4
-#   ipFamilyPolicy: SingleStack
-#   ports:
-#   - name: https
-#     nodePort: 31581
-#     port: 443
-#     protocol: TCP
-#     targetPort: 443
-#   - name: http
-#     nodePort: 30877
-#     port: 80
-#     protocol: TCP
-#     targetPort: 80
-#   selector:
-#     app.kubernetes.io/instance: nginx-gateway
-#     app.kubernetes.io/name: nginx-gateway-fabric
-#   sessionAffinity: None
-#   type: LoadBalancer
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kubernetes.digitalocean.com/load-balancer-id: e1153633-5058-4cd9-b026-4c60295d5382
+    service.beta.kubernetes.io/do-loadbalancer-enable-backend-keepalive: "true"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+    service.beta.kubernetes.io/do-loadbalancer-name: nginx-gateway
+    service.beta.kubernetes.io/do-loadbalancer-protocol: tcp
+    service.beta.kubernetes.io/do-loadbalancer-size-unit: "1"
+    service.beta.kubernetes.io/do-loadbalancer-hostname: ingress.sigil.box
+  finalizers:
+  - service.kubernetes.io/load-balancer-cleanup
+  labels:
+    app.kubernetes.io/instance: nginx-gateway
+    app.kubernetes.io/name: nginx-gateway
+    app.kubernetes.io/version: 1.3.0
+  name: nginx-gateway
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 10.108.42.141
+  clusterIPs:
+  - 10.108.42.141
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: https
+    nodePort: 31581
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  - name: http
+    nodePort: 30877
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app.kubernetes.io/instance: nginx-gateway
+    app.kubernetes.io/name: nginx-gateway-fabric
+  sessionAffinity: None
+  type: LoadBalancer

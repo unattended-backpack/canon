@@ -21,7 +21,7 @@ spec:
   clusterIP: 10.108.42.141
   clusterIPs:
   - 10.108.42.141
-  externalTrafficPolicy: Cluster
+  externalTrafficPolicy: Local
   internalTrafficPolicy: Cluster
   ipFamilies:
   - IPv4

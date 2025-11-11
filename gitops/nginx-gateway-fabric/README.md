@@ -1,7 +1,7 @@
 
 # NGINX Gateway Fabric Helm Chart
 
-![Version: 1.6.2](https://img.shields.io/badge/Version-1.6.2-informational?style=flat-square) ![AppVersion: 1.6.2](https://img.shields.io/badge/AppVersion-1.6.2-informational?style=flat-square)
+![Version: 2.2.0](https://img.shields.io/badge/Version-2.2.0-informational?style=flat-square) ![AppVersion: edge](https://img.shields.io/badge/AppVersion-edge-informational?style=flat-square)
 
 - [NGINX Gateway Fabric Helm Chart](#nginx-gateway-fabric-helm-chart)
   - [Introduction](#introduction)
@@ -20,7 +20,6 @@
     - [Upgrading the CRDs](#upgrading-the-crds)
     - [Upgrading the Chart from the OCI Registry](#upgrading-the-chart-from-the-oci-registry)
     - [Upgrading the Chart from the Sources](#upgrading-the-chart-from-the-sources)
-    - [Configure Delayed Termination for Zero Downtime Upgrades](#configure-delayed-termination-for-zero-downtime-upgrades)
   - [Uninstalling the Chart](#uninstalling-the-chart)
     - [Uninstalling the Gateway Resources](#uninstalling-the-gateway-resources)
   - [Configuration](#configuration)
@@ -112,26 +111,15 @@ By default, the NGINX Gateway Fabric helm chart deploys a LoadBalancer Service.
 To use a NodePort Service instead:
 
 ```shell
-helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway --set service.type=NodePort
-```
-
-To disable the creation of a Service:
-
-```shell
-helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway --set service.create=false
+helm install ngf oci://ghcr.io/nginx/charts/nginx-gateway-fabric --create-namespace -n nginx-gateway --set nginx.service.type=NodePort
 ```
 
 ## Upgrading the Chart
 
-> [!NOTE]
->
-> See [below](#configure-delayed-termination-for-zero-downtime-upgrades) for instructions on how to configure delayed
-> termination if required for zero downtime upgrades in your environment.
-
 ### Upgrading the Gateway Resources
 
 Before you upgrade a release, ensure the Gateway API resources are the correct version as supported by the NGINX
-Gateway Fabric - [see the Technical Specifications](../../README.md#technical-specifications).:
+Gateway Fabric - [see the Technical Specifications](https://github.com/nginx/nginx-gateway-fabric/blob/main/README.md#technical-specifications).:
 
 To upgrade the Gateway CRDs from [the Gateway API repo](https://github.com/kubernetes-sigs/gateway-api), run:
 
@@ -145,7 +133,7 @@ Helm does not upgrade the NGINX Gateway Fabric CRDs during a release upgrade. Be
 must [pull the chart](#pulling-the-chart) from GitHub and run the following command to upgrade the CRDs:
 
 ```shell
-kubectl apply -f crds/
+kubectl apply --server-side -f crds/
 ```
 
 The following warning is expected and can be ignored:
@@ -173,57 +161,6 @@ the release `ngf`, run:
 ```shell
 helm upgrade ngf . -n nginx-gateway
 ```
-
-### Configure Delayed Termination for Zero Downtime Upgrades
-
-To achieve zero downtime upgrades (meaning clients will not see any interruption in traffic while a rolling upgrade is
-being performed on NGF), you may need to configure delayed termination on the NGF Pod, depending on your environment.
-
-> [!NOTE]
->
-> When proxying Websocket or any long-lived connections, NGINX will not terminate until that connection is closed
-> by either the client or the backend. This means that unless all those connections are closed by clients/backends
-> before or during an upgrade, NGINX will not terminate, which means Kubernetes will kill NGINX. As a result, the
-> clients will see the connections abruptly closed and thus experience downtime.
-
-1. Add `lifecycle` to both the nginx and the nginx-gateway container definition. To do so, update your `values.yaml`
-   file to include the following (update the `sleep` values to what is required in your environment):
-
-   ```yaml
-    nginxGateway:
-        <...>
-        lifecycle:
-            preStop:
-                exec:
-                    command:
-                    - /usr/bin/gateway
-                    - sleep
-                    - --duration=40s # This flag is optional, the default is 30s
-
-    nginx:
-        <...>
-        lifecycle:
-            preStop:
-                exec:
-                    command:
-                    - /bin/sleep
-                    - "40"
-   ```
-
-2. Ensure the `terminationGracePeriodSeconds` matches or exceeds the `sleep` value from the `preStopHook` (the default
-   is 30). This is to ensure Kubernetes does not terminate the Pod before the `preStopHook` is complete. To do so,
-   update your `values.yaml` file to include the following (update the value to what is required in your environment):
-
-   ```yaml
-   terminationGracePeriodSeconds: 50
-   ```
-
-> [!NOTE]
->
-> More information on container lifecycle hooks can be found
-> [here](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks) and a detailed
-> description of Pod termination behavior can be found in
-> [Termination of Pods](https://kubernetes.io/docs/concepts/workloads/Pods/Pod-lifecycle/#Pod-termination).
 
 ## Uninstalling the Chart
 
@@ -253,65 +190,109 @@ kubectl kustomize https://github.com/nginx/nginx-gateway-fabric/config/crd/gatew
 
 The following table lists the configurable parameters of the NGINX Gateway Fabric chart and their default values.
 
+> More granular configuration options may not show up in this table.
+> Viewing the `values.yaml` file directly can show all available options.
+
 | Key | Description | Type | Default |
 |-----|-------------|------|---------|
-| `affinity` | The affinity of the NGINX Gateway Fabric pod. | object | `{}` |
-| `extraVolumes` | extraVolumes for the NGINX Gateway Fabric pod. Use in conjunction with nginxGateway.extraVolumeMounts and nginx.extraVolumeMounts to mount additional volumes to the containers. | list | `[]` |
-| `metrics.enable` | Enable exposing metrics in the Prometheus format. | bool | `true` |
-| `metrics.port` | Set the port where the Prometheus metrics are exposed. | int | `9113` |
-| `metrics.secure` | Enable serving metrics via https. By default metrics are served via http. Please note that this endpoint will be secured with a self-signed certificate. | bool | `false` |
-| `nginx.config` | The configuration for the data plane that is contained in the NginxProxy resource. | object | `{}` |
+| `certGenerator` | The certGenerator section contains the configuration for the cert-generator Job. | object | `{"affinity":{},"agentTLSSecretName":"agent-tls","annotations":{},"enable":true,"nodeSelector":{},"overwrite":false,"serverTLSSecretName":"server-tls","tolerations":[],"topologySpreadConstraints":[],"ttlSecondsAfterFinished":30}` |
+| `certGenerator.affinity` | The affinity of the cert-generator pod. | object | `{}` |
+| `certGenerator.agentTLSSecretName` | The name of the base Secret containing TLS CA, certificate, and key for the NGINX Agent to securely communicate with the NGINX Gateway Fabric control plane. Must exist in the same namespace that the NGINX Gateway Fabric control plane is running in (default namespace: nginx-gateway). | string | `"agent-tls"` |
+| `certGenerator.annotations` | The annotations of the cert-generator Job. | object | `{}` |
+| `certGenerator.enable` | Enable the cert-generator Job. If this is disabled, then cert-manager or some other method must be used to create the required Secrets. | bool | `true` |
+| `certGenerator.nodeSelector` | The nodeSelector of the cert-generator pod. | object | `{}` |
+| `certGenerator.overwrite` | Overwrite existing TLS Secrets on startup. | bool | `false` |
+| `certGenerator.serverTLSSecretName` | The name of the Secret containing TLS CA, certificate, and key for the NGINX Gateway Fabric control plane to securely communicate with the NGINX Agent. Must exist in the same namespace that the NGINX Gateway Fabric control plane is running in (default namespace: nginx-gateway). | string | `"server-tls"` |
+| `certGenerator.tolerations` | Tolerations for the cert-generator pod. | list | `[]` |
+| `certGenerator.topologySpreadConstraints` | The topology spread constraints for the cert-generator pod. | list | `[]` |
+| `certGenerator.ttlSecondsAfterFinished` | How long to wait after the cert generator job has finished before it is removed by the job controller. | int | `30` |
+| `clusterDomain` | The DNS cluster domain of your Kubernetes cluster. | string | `"cluster.local"` |
+| `gateways` | A list of Gateway objects. View https://gateway-api.sigs.k8s.io/reference/spec/#gateway for full Gateway reference. | list | `[]` |
+| `nginx` | The nginx section contains the configuration for all NGINX data plane deployments installed by the NGINX Gateway Fabric control plane. | object | `{"autoscaling":{"enable":false},"config":{},"container":{"hostPorts":[],"lifecycle":{},"readinessProbe":{},"resources":{},"volumeMounts":[]},"debug":false,"image":{"pullPolicy":"Always","repository":"ghcr.io/nginx/nginx-gateway-fabric/nginx","tag":"edge"},"imagePullSecret":"","imagePullSecrets":[],"kind":"deployment","nginxOneConsole":{"dataplaneKeySecretName":"","endpointHost":"agent.connect.nginx.com","endpointPort":443,"skipVerify":false},"patches":[],"plus":false,"pod":{},"replicas":1,"service":{"externalTrafficPolicy":"Local","loadBalancerClass":"","loadBalancerIP":"","loadBalancerSourceRanges":[],"nodePorts":[],"patches":[],"type":"LoadBalancer"},"usage":{"caSecretName":"","clientSSLSecretName":"","endpoint":"","enforceInitialReport":true,"resolver":"","secretName":"nplus-license","skipVerify":false}}` |
+| `nginx.autoscaling` | Autoscaling configuration for the NGINX data plane. | object | `{"enable":false}` |
+| `nginx.autoscaling.enable` | Enable or disable Horizontal Pod Autoscaler for the NGINX data plane. | bool | `false` |
+| `nginx.config` | The configuration for the data plane that is contained in the NginxProxy resource. This is applied globally to all Gateways managed by this instance of NGINX Gateway Fabric. | object | `{}` |
+| `nginx.container` | The container configuration for the NGINX container. This is applied globally to all Gateways managed by this instance of NGINX Gateway Fabric. | object | `{"hostPorts":[],"lifecycle":{},"readinessProbe":{},"resources":{},"volumeMounts":[]}` |
+| `nginx.container.hostPorts` | A list of HostPorts to expose on the host. This configuration allows containers to bind to a specific port on the host node, enabling external network traffic to reach the container directly through the host's IP address and port. Use this option when you need to expose container ports on the host for direct access, such as for debugging, legacy integrations, or when NodePort/LoadBalancer services are not suitable. Note: Using hostPort may have security and scheduling implications, as it ties pods to specific nodes and ports. | list | `[]` |
+| `nginx.container.lifecycle` | The lifecycle of the NGINX container. | object | `{}` |
+| `nginx.container.resources` | The resource requirements of the NGINX container. You should set this value if you want to use dataplane Autoscaling(HPA). | object | `{}` |
+| `nginx.container.volumeMounts` | volumeMounts are the additional volume mounts for the NGINX container. | list | `[]` |
 | `nginx.debug` | Enable debugging for NGINX. Uses the nginx-debug binary. The NGINX error log level should be set to debug in the NginxProxy resource. | bool | `false` |
-| `nginx.extraVolumeMounts` | extraVolumeMounts are the additional volume mounts for the nginx container. | list | `[]` |
-| `nginx.image.pullPolicy` |  | string | `"IfNotPresent"` |
 | `nginx.image.repository` | The NGINX image to use. | string | `"ghcr.io/nginx/nginx-gateway-fabric/nginx"` |
-| `nginx.image.tag` |  | string | `"1.6.2"` |
-| `nginx.lifecycle` | The lifecycle of the nginx container. | object | `{}` |
-| `nginx.plus` | Is NGINX Plus image being used | bool | `false` |
+| `nginx.imagePullSecret` | The name of the secret containing docker registry credentials. Secret must exist in the same namespace as the helm release. The control plane will copy this secret into any namespace where NGINX is deployed. | string | `""` |
+| `nginx.imagePullSecrets` | A list of secret names containing docker registry credentials. Secrets must exist in the same namespace as the helm release. The control plane will copy these secrets into any namespace where NGINX is deployed. | list | `[]` |
+| `nginx.kind` | The kind of NGINX deployment. | string | `"deployment"` |
+| `nginx.nginxOneConsole` | Configuration for NGINX One Console. | object | `{"dataplaneKeySecretName":"","endpointHost":"agent.connect.nginx.com","endpointPort":443,"skipVerify":false}` |
+| `nginx.nginxOneConsole.dataplaneKeySecretName` | Name of the secret which holds the dataplane key that is required to authenticate with the NGINX One Console. Secret must exist in the same namespace that the NGINX Gateway Fabric control plane is running in (default namespace: nginx-gateway). | string | `""` |
+| `nginx.nginxOneConsole.endpointHost` | The Endpoint host that the NGINX One Console telemetry metrics will be sent to. | string | `"agent.connect.nginx.com"` |
+| `nginx.nginxOneConsole.endpointPort` | The endpoint port that the NGINX One Console telemetry metrics will be sent to. | int | `443` |
+| `nginx.nginxOneConsole.skipVerify` | Skip TLS verification for NGINX One Console connections. | bool | `false` |
+| `nginx.patches` | Custom patches to apply to the NGINX Deployment/DaemonSet. | list | `[]` |
+| `nginx.plus` | Is NGINX Plus image being used. | bool | `false` |
+| `nginx.pod` | The pod configuration for the NGINX data plane pod. This is applied globally to all Gateways managed by this instance of NGINX Gateway Fabric. | object | `{}` |
+| `nginx.replicas` | The number of replicas of the NGINX Deployment. This value is ignored if autoscaling.enable is true. | int | `1` |
+| `nginx.service` | The service configuration for the NGINX data plane. This is applied globally to all Gateways managed by this instance of NGINX Gateway Fabric. | object | `{"externalTrafficPolicy":"Local","loadBalancerClass":"","loadBalancerIP":"","loadBalancerSourceRanges":[],"nodePorts":[],"patches":[],"type":"LoadBalancer"}` |
+| `nginx.service.externalTrafficPolicy` | The externalTrafficPolicy of the service. The value Local preserves the client source IP. | string | `"Local"` |
+| `nginx.service.loadBalancerClass` | LoadBalancerClass is the class of the load balancer implementation this Service belongs to. Requires nginx.service.type set to LoadBalancer. | string | `""` |
+| `nginx.service.loadBalancerIP` | The static IP address for the load balancer. Requires nginx.service.type set to LoadBalancer. | string | `""` |
+| `nginx.service.loadBalancerSourceRanges` | The IP ranges (CIDR) that are allowed to access the load balancer. Requires nginx.service.type set to LoadBalancer. | list | `[]` |
+| `nginx.service.nodePorts` | A list of NodePorts to expose on the NGINX data plane service. Each NodePort MUST map to a Gateway listener port, otherwise it will be ignored. The default NodePort range enforced by Kubernetes is 30000-32767. | list | `[]` |
+| `nginx.service.patches` | Custom patches to apply to the NGINX Service. | list | `[]` |
+| `nginx.service.type` | The type of service to create for the NGINX data plane. | string | `"LoadBalancer"` |
 | `nginx.usage.caSecretName` | The name of the Secret containing the NGINX Instance Manager CA certificate. Must exist in the same namespace that the NGINX Gateway Fabric control plane is running in (default namespace: nginx-gateway). | string | `""` |
 | `nginx.usage.clientSSLSecretName` | The name of the Secret containing the client certificate and key for authenticating with NGINX Instance Manager. Must exist in the same namespace that the NGINX Gateway Fabric control plane is running in (default namespace: nginx-gateway). | string | `""` |
 | `nginx.usage.endpoint` | The endpoint of the NGINX Plus usage reporting server. Default: product.connect.nginx.com | string | `""` |
+| `nginx.usage.enforceInitialReport` | Enable enforcement of the initial NGINX Plus licensing report. If set to false, the initial report is not enforced. | bool | `true` |
 | `nginx.usage.resolver` | The nameserver used to resolve the NGINX Plus usage reporting endpoint. Used with NGINX Instance Manager. | string | `""` |
 | `nginx.usage.secretName` | The name of the Secret containing the JWT for NGINX Plus usage reporting. Must exist in the same namespace that the NGINX Gateway Fabric control plane is running in (default namespace: nginx-gateway). | string | `"nplus-license"` |
 | `nginx.usage.skipVerify` | Disable client verification of the NGINX Plus usage reporting server certificate. | bool | `false` |
+| `nginxGateway` | The nginxGateway section contains configuration for the NGINX Gateway Fabric control plane deployment. | object | `{"affinity":{},"autoscaling":{"enable":false},"config":{"logging":{"level":"info"}},"configAnnotations":{},"extraVolumeMounts":[],"extraVolumes":[],"gatewayClassAnnotations":{},"gatewayClassName":"nginx","gatewayControllerName":"gateway.nginx.org/nginx-gateway-controller","gwAPIExperimentalFeatures":{"enable":false},"gwAPIInferenceExtension":{"enable":false,"endpointPicker":{"disableTLS":false,"skipVerify":true}},"image":{"pullPolicy":"Always","repository":"ghcr.io/nginx/nginx-gateway-fabric","tag":"edge"},"kind":"deployment","labels":{},"leaderElection":{"enable":true,"lockName":""},"lifecycle":{},"metrics":{"enable":true,"port":9113,"secure":false},"name":"","nodeSelector":{},"podAnnotations":{},"productTelemetry":{"enable":true},"readinessProbe":{"enable":true,"initialDelaySeconds":3,"port":8081},"replicas":1,"resources":{},"service":{"annotations":{},"labels":{}},"serviceAccount":{"annotations":{},"imagePullSecret":"","imagePullSecrets":[],"name":""},"snippetsFilters":{"enable":false},"terminationGracePeriodSeconds":30,"tolerations":[],"topologySpreadConstraints":[]}` |
+| `nginxGateway.affinity` | The affinity of the NGINX Gateway Fabric control plane pod. | object | `{}` |
+| `nginxGateway.autoscaling` | Autoscaling configuration for the NGINX Gateway Fabric control plane. | object | `{"enable":false}` |
+| `nginxGateway.autoscaling.enable` | Enable or disable Horizontal Pod Autoscaler for the control plane. | bool | `false` |
 | `nginxGateway.config.logging.level` | Log level. | string | `"info"` |
 | `nginxGateway.configAnnotations` | Set of custom annotations for NginxGateway objects. | object | `{}` |
 | `nginxGateway.extraVolumeMounts` | extraVolumeMounts are the additional volume mounts for the nginx-gateway container. | list | `[]` |
+| `nginxGateway.extraVolumes` | extraVolumes for the NGINX Gateway Fabric control plane pod. Use in conjunction with nginxGateway.extraVolumeMounts mount additional volumes to the container. | list | `[]` |
 | `nginxGateway.gatewayClassAnnotations` | Set of custom annotations for GatewayClass objects. | object | `{}` |
 | `nginxGateway.gatewayClassName` | The name of the GatewayClass that will be created as part of this release. Every NGINX Gateway Fabric must have a unique corresponding GatewayClass resource. NGINX Gateway Fabric only processes resources that belong to its class - i.e. have the "gatewayClassName" field resource equal to the class. | string | `"nginx"` |
 | `nginxGateway.gatewayControllerName` | The name of the Gateway controller. The controller name must be of the form: DOMAIN/PATH. The controller's domain is gateway.nginx.org. | string | `"gateway.nginx.org/nginx-gateway-controller"` |
 | `nginxGateway.gwAPIExperimentalFeatures.enable` | Enable the experimental features of Gateway API which are supported by NGINX Gateway Fabric. Requires the Gateway APIs installed from the experimental channel. | bool | `false` |
-| `nginxGateway.image.pullPolicy` |  | string | `"IfNotPresent"` |
+| `nginxGateway.gwAPIInferenceExtension.enable` | Enable Gateway API Inference Extension support. Allows for configuring InferencePools to route traffic to AI workloads. | bool | `false` |
+| `nginxGateway.gwAPIInferenceExtension.endpointPicker` | EndpointPicker TLS configuration. | object | `{"disableTLS":false,"skipVerify":true}` |
+| `nginxGateway.gwAPIInferenceExtension.endpointPicker.disableTLS` | Disable TLS for EndpointPicker communication. By default, TLS is enabled. Set to true only for development/testing or when using a service mesh for encryption. | bool | `false` |
+| `nginxGateway.gwAPIInferenceExtension.endpointPicker.skipVerify` | Disables TLS certificate verification when connecting to the EndpointPicker. By default, certificate verification is disabled. REQUIRED: Must be true until Gateway API Inference Extension EndpointPicker supports mounting certificates. See: https://github.com/kubernetes-sigs/gateway-api-inference-extension/issues/1556 | bool | `true` |
+| `nginxGateway.image` | The image configuration for the NGINX Gateway Fabric control plane. | object | `{"pullPolicy":"Always","repository":"ghcr.io/nginx/nginx-gateway-fabric","tag":"edge"}` |
 | `nginxGateway.image.repository` | The NGINX Gateway Fabric image to use | string | `"ghcr.io/nginx/nginx-gateway-fabric"` |
-| `nginxGateway.image.tag` |  | string | `"1.6.2"` |
 | `nginxGateway.kind` | The kind of the NGINX Gateway Fabric installation - currently, only deployment is supported. | string | `"deployment"` |
+| `nginxGateway.labels` | Set of labels to be added for NGINX Gateway Fabric deployment. | object | `{}` |
 | `nginxGateway.leaderElection.enable` | Enable leader election. Leader election is used to avoid multiple replicas of the NGINX Gateway Fabric reporting the status of the Gateway API resources. If not enabled, all replicas of NGINX Gateway Fabric will update the statuses of the Gateway API resources. | bool | `true` |
 | `nginxGateway.leaderElection.lockName` | The name of the leader election lock. A Lease object with this name will be created in the same Namespace as the controller. | string | Autogenerated if not set or set to "". |
 | `nginxGateway.lifecycle` | The lifecycle of the nginx-gateway container. | object | `{}` |
+| `nginxGateway.metrics.enable` | Enable exposing metrics in the Prometheus format. | bool | `true` |
+| `nginxGateway.metrics.port` | Set the port where the Prometheus metrics are exposed. | int | `9113` |
+| `nginxGateway.metrics.secure` | Enable serving metrics via https. By default metrics are served via http. Please note that this endpoint will be secured with a self-signed certificate. | bool | `false` |
+| `nginxGateway.name` | The name of the NGINX Gateway Fabric deployment - if not present, then by default uses release name given during installation. | string | `""` |
+| `nginxGateway.nodeSelector` | The nodeSelector of the NGINX Gateway Fabric control plane pod. | object | `{}` |
 | `nginxGateway.podAnnotations` | Set of custom annotations for the NGINX Gateway Fabric pods. | object | `{}` |
 | `nginxGateway.productTelemetry.enable` | Enable the collection of product telemetry. | bool | `true` |
 | `nginxGateway.readinessProbe.enable` | Enable the /readyz endpoint on the control plane. | bool | `true` |
 | `nginxGateway.readinessProbe.initialDelaySeconds` | The number of seconds after the Pod has started before the readiness probes are initiated. | int | `3` |
 | `nginxGateway.readinessProbe.port` | Port in which the readiness endpoint is exposed. | int | `8081` |
-| `nginxGateway.replicaCount` | The number of replicas of the NGINX Gateway Fabric Deployment. | int | `1` |
+| `nginxGateway.replicas` | The number of replicas of the NGINX Gateway Fabric Deployment. This value is ignored if autoscaling.enable is true. | int | `1` |
 | `nginxGateway.resources` | The resource requests and/or limits of the nginx-gateway container. | object | `{}` |
-| `nginxGateway.securityContext.allowPrivilegeEscalation` | Some environments may need this set to true in order for the control plane to successfully reload NGINX. | bool | `false` |
+| `nginxGateway.service` | The service configuration for the NGINX Gateway Fabric control plane. | object | `{"annotations":{},"labels":{}}` |
+| `nginxGateway.service.annotations` | The annotations of the NGINX Gateway Fabric control plane service. | object | `{}` |
+| `nginxGateway.service.labels` | The labels of the NGINX Gateway Fabric control plane service. | object | `{}` |
+| `nginxGateway.serviceAccount` | The serviceaccount configuration for the NGINX Gateway Fabric control plane. | object | `{"annotations":{},"imagePullSecret":"","imagePullSecrets":[],"name":""}` |
+| `nginxGateway.serviceAccount.annotations` | Set of custom annotations for the NGINX Gateway Fabric control plane service account. | object | `{}` |
+| `nginxGateway.serviceAccount.imagePullSecret` | The name of the secret containing docker registry credentials for the control plane. Secret must exist in the same namespace as the helm release. | string | `""` |
+| `nginxGateway.serviceAccount.imagePullSecrets` | A list of secret names containing docker registry credentials for the control plane. Secrets must exist in the same namespace as the helm release. | list | `[]` |
+| `nginxGateway.serviceAccount.name` | The name of the service account of the NGINX Gateway Fabric control plane pods. Used for RBAC. | string | Autogenerated if not set or set to "" |
 | `nginxGateway.snippetsFilters.enable` | Enable SnippetsFilters feature. SnippetsFilters allow inserting NGINX configuration into the generated NGINX config for HTTPRoute and GRPCRoute resources. | bool | `false` |
-| `nodeSelector` | The nodeSelector of the NGINX Gateway Fabric pod. | object | `{}` |
-| `service.annotations` | The annotations of the NGINX Gateway Fabric service. | object | `{}` |
-| `service.create` | Creates a service to expose the NGINX Gateway Fabric pods. | bool | `true` |
-| `service.externalTrafficPolicy` | The externalTrafficPolicy of the service. The value Local preserves the client source IP. | string | `"Local"` |
-| `service.loadBalancerIP` | The static IP address for the load balancer. Requires service.type set to LoadBalancer. | string | `""` |
-| `service.loadBalancerSourceRanges` | The IP ranges (CIDR) that are allowed to access the load balancer. Requires service.type set to LoadBalancer. | list | `[]` |
-| `service.ports` | A list of ports to expose through the NGINX Gateway Fabric service. Update it to match the listener ports from your Gateway resource. Follows the conventional Kubernetes yaml syntax for service ports. | list | `[{"name":"http","port":80,"protocol":"TCP","targetPort":80},{"name":"https","port":443,"protocol":"TCP","targetPort":443}]` |
-| `service.type` | The type of service to create for the NGINX Gateway Fabric. | string | `"LoadBalancer"` |
-| `serviceAccount.annotations` | Set of custom annotations for the NGINX Gateway Fabric service account. | object | `{}` |
-| `serviceAccount.imagePullSecret` | The name of the secret containing docker registry credentials. Secret must exist in the same namespace as the helm release. | string | `""` |
-| `serviceAccount.imagePullSecrets` | A list of secret names containing docker registry credentials. Secrets must exist in the same namespace as the helm release. | list | `[]` |
-| `serviceAccount.name` | The name of the service account of the NGINX Gateway Fabric pods. Used for RBAC. | string | Autogenerated if not set or set to "" |
-| `terminationGracePeriodSeconds` | The termination grace period of the NGINX Gateway Fabric pod. | int | `30` |
-| `tolerations` | Tolerations for the NGINX Gateway Fabric pod. | list | `[]` |
-| `topologySpreadConstraints` | The topology spread constraints for the NGINX Gateway Fabric pod. | list | `[]` |
+| `nginxGateway.terminationGracePeriodSeconds` | The termination grace period of the NGINX Gateway Fabric control plane pod. | int | `30` |
+| `nginxGateway.tolerations` | Tolerations for the NGINX Gateway Fabric control plane pod. | list | `[]` |
+| `nginxGateway.topologySpreadConstraints` | The topology spread constraints for the NGINX Gateway Fabric control plane pod. | list | `[]` |
 
 ----------------------------------------------
 Autogenerated from chart metadata using [helm-docs](https://github.com/norwoodj/helm-docs)

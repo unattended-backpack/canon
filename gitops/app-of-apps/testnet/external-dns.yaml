@@ -22,7 +22,7 @@ spec:
         extraArgs:
           - --cloudflare-proxied
           - --cloudflare-dns-records-per-page=5000
-          - --txt-owner-id=stage
+          - --txt-owner-id=testnet
   destination:
     server: https://kubernetes.default.svc
     namespace: external-dns

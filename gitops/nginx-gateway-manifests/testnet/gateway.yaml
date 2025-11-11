@@ -13,26 +13,26 @@ spec:
       allowedRoutes:
         namespaces:
           from: All
-    # - name: star-CHANGEME
-    #   hostname: "*.CHANGEME"
-    #   port: 443
-    #   protocol: HTTPS
-    #   allowedRoutes:
-    #     namespaces:
-    #       from: All
-    #   tls:
-    #     mode: Terminate
-    #     certificateRefs:
-    #       - name: wildcard-certificate
-    # - name: CHANGEME
-    #   hostname: "CHANGEME"
-    #   port: 443
-    #   protocol: HTTPS
-    #   allowedRoutes:
-    #     namespaces:
-    #       from: All
-    #   tls:
-    #     mode: Terminate
-    #     certificateRefs:
-    #       - name: wildcard-certificate
+    - name: star-sigil-box
+      hostname: "*.sigil.box"
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: wildcard-cert
+    - name: sigil-box
+      hostname: "sigil.box"
+      port: 443
+      protocol: HTTPS
+      allowedRoutes:
+        namespaces:
+          from: All
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: wildcard-cert
     

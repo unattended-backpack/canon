@@ -3,5 +3,6 @@ nginxGateway:
     logging:
       level: error
   replicaCount: 1
-service:
-  create: false
+nginx:
+  service:
+  loadBalancerSourceRanges: [0.0.0.0/0]

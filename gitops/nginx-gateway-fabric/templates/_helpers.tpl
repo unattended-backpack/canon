@@ -2,7 +2,11 @@
 Expand the name of the chart.
 */}}
 {{- define "nginx-gateway.name" -}}
+{{- if .Values.nginxGateway.name }}
+{{- .Values.nginxGateway.name | trunc 63 | trimSuffix "-" }}
+{{- else }}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
 {{- end }}
 
 {{/*
@@ -14,7 +18,7 @@ If release name contains chart name it will be used as a full name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default (include "nginx-gateway.name" .) }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -27,7 +31,7 @@ If release name contains chart name it will be used as a full name.
 Create control plane config name.
 */}}
 {{- define "nginx-gateway.config-name" -}}
-{{- $name := default .Release.Name .Values.nameOverride }}
+{{- $name := .Values.nginxGateway.name | default .Values.nameOverride | default .Release.Name }}
 {{- printf "%s-config" $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -35,7 +39,7 @@ Create control plane config name.
 Create data plane config name.
 */}}
 {{- define "nginx-gateway.proxy-config-name" -}}
-{{- $name := default .Release.Name .Values.nameOverride }}
+{{- $name := .Values.nginxGateway.name | default .Values.nameOverride | default .Release.Name }}
 {{- printf "%s-proxy-config" $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -43,7 +47,7 @@ Create data plane config name.
 Create security context constraints name.
 */}}
 {{- define "nginx-gateway.scc-name" -}}
-{{- $name := default .Release.Name .Values.nameOverride }}
+{{- $name := .Values.nginxGateway.name | default .Values.nameOverride | default .Release.Name }}
 {{- printf "%s-scc" $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -78,7 +82,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the ServiceAccount to use
 */}}
 {{- define "nginx-gateway.serviceAccountName" -}}
-{{- default (include "nginx-gateway.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "nginx-gateway.fullname" .) .Values.nginxGateway.serviceAccount.name }}
 {{- end }}
 
 {{/*
@@ -91,3 +95,18 @@ Expand leader election lock name.
 {{- printf "%s-%s" (include "nginx-gateway.fullname" .) "leader-election" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Filters out empty fields from a struct.
+*/}}
+{{- define "filterEmptyFields" -}}
+{{- $result := dict }}
+{{- range $key, $value := . }}
+  {{- if and (not (empty $value)) (not (and (kindIs "slice" $value) (eq (len $value) 0))) }}
+    {{- $result = merge $result (dict $key $value) }}
+  {{- end }}
+{{- end }}
+{{- if $result -}}
+{{- $result | toYaml -}}
+{{- end -}}
+{{- end }}

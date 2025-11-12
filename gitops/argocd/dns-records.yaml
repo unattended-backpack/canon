@@ -6,7 +6,7 @@ metadata:
   namespace: argocd
   annotations:
     external-dns.alpha.kubernetes.io/hostname: argocd.sigil.box
-    external-dns.alpha.kubernetes.io/cloudflare-proxied: "false"
+    external-dns.alpha.kubernetes.io/cloudflare-proxied: "true"
   labels:
     app.kubernetes.io/name: ingress-aliases
     app.kubernetes.io/part-of: argocd

@@ -17,22 +17,6 @@ spec:
           kind: ControllerConfiguration
           enableGatewayAPI: true
         extraObjects:
-          # - |
-          #   apiVersion: external-secrets.io/v1beta1
-          #   kind: ExternalSecret
-          #   metadata:
-          #     name: cf-api-key
-          #   spec:
-          #     secretStoreRef:
-          #       kind: ClusterSecretStore
-          #       name: CHANGEME
-          #     target:
-          #       name: CHANGEME
-          #       creationPolicy: Owner
-          #     dataFrom:
-          #     - extract:
-          #         key: CHANGEME
-          #     refreshInterval: 1m
           - |
             apiVersion: cert-manager.io/v1
             kind: ClusterIssuer
